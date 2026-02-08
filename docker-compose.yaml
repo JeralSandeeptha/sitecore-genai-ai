@@ -1,0 +1,18 @@
+services:
+  sitecore-genai-backend:
+    container_name: sitecore_genai_backend
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "6001:6001"
+    environment:
+      - PORT=6001
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - V0_API_KEY=${V0_API_KEY}
+    volumes:
+      - .:/app
+      - /app/node_modules
