@@ -7,10 +7,28 @@ import axios from "axios";
 import { envConfig } from "../../config/envConfig";
 import { v0 } from "v0-sdk";
 
+const getUserV0Key = async (userId: string): Promise<string> => {
+  const response = await axios.get(
+    `${envConfig.GATEWAY_SERVICE_URL}/gateway/users/api/v1/user/${userId}/getapikey`,
+  );
+  return response.data?.data || "";
+};
+
+const createV0ChatWithKey = async (apiKey: string, params: any) => {
+  const oldKey = process.env.V0_API_KEY;
+  process.env.V0_API_KEY = apiKey; // set key dynamically
+  logger.info(`Set V0 API key dynamically for chat creation: ${apiKey}`);
+  try {
+    return await v0.chats.create(params);
+  } finally {
+    process.env.V0_API_KEY = oldKey; // restore original key
+    logger.info(`Reset V0 API key: ${apiKey}`);
+  }
+};
+
 export const generateComponent: RequestHandler = async (req, res) => {
   try {
-    const { prompt, image } = req.body;
-    logger.info(prompt);
+    const { prompt, image, userId } = req.body;
 
     if (!prompt) {
       return res
@@ -20,6 +38,33 @@ export const generateComponent: RequestHandler = async (req, res) => {
             HTTP_STATUS.BAD_REQUEST,
             "Prompt is required",
             "Please provide a valid prompt",
+          ),
+        );
+    }
+
+    if (!userId) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json(
+          new ErrorResponse(
+            HTTP_STATUS.BAD_REQUEST,
+            "User ID is required",
+            "Please provide a valid user ID",
+          ),
+        );
+    }
+
+    // Fetch user's V0 API key
+    const voApiKey = await getUserV0Key(userId);
+    logger.info(`Fetched V0 API key ${voApiKey}`);
+    if (!voApiKey) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json(
+          new ErrorResponse(
+            HTTP_STATUS.BAD_REQUEST,
+            "V0 API key not found for user",
+            "V0 API key not found for user",
           ),
         );
     }
@@ -50,7 +95,8 @@ export const generateComponent: RequestHandler = async (req, res) => {
 
     try {
       // Create a new chat on Vercel with the Prompt / given data
-      const chat = await v0.chats.create({
+      // Create chat using dynamic V0 key
+      const chat = await createV0ChatWithKey(voApiKey, {
         message: `
             You are a best senior frontend engineer in Sitecore. You are developing XM Cloud React Components on Nextjs Projects.
 
@@ -153,7 +199,7 @@ export const generateComponent: RequestHandler = async (req, res) => {
         new ErrorResponse(
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           "Component generate query was failed",
-          error,
+          error
         ),
       );
   }
