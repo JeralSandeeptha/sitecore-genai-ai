@@ -57,6 +57,10 @@ export const generateComponent: RequestHandler = async (req, res) => {
     // Fetch user's V0 API key
     const voApiKey = await getUserV0Key(userId);
     logger.info(`Fetched V0 API key ${voApiKey}`);
+    const oldKey = process.env.V0_API_KEY;
+    process.env.V0_API_KEY = voApiKey; // set key dynamically
+    logger.info(`Set V0 API key dynamically for chat creation: ${voApiKey}`);
+
     if (!voApiKey) {
       return res
         .status(HTTP_STATUS.BAD_REQUEST)
@@ -96,8 +100,9 @@ export const generateComponent: RequestHandler = async (req, res) => {
     try {
       // Create a new chat on Vercel with the Prompt / given data
       // Create chat using dynamic V0 key
-      const chat = await createV0ChatWithKey(voApiKey, {
-        message: `
+      const chatPayload: any = {
+        message: `${prompt}`,
+        system: `
             You are a best senior frontend engineer in Sitecore. You are developing XM Cloud React Components on Nextjs Projects.
 
             Pre Actions:
@@ -120,9 +125,6 @@ export const generateComponent: RequestHandler = async (req, res) => {
 
             Task:
             ${prompt}
-
-            Reference image:
-            ${image || "No images provided."}
 
             Templates Examples:
             ${templatesText}
@@ -159,9 +161,21 @@ export const generateComponent: RequestHandler = async (req, res) => {
             - Revise the code again and check whether all are correct.
             - Make sure there is no linting or formatting errors in the code.
           `,
-      });
+      };
+
+      // Only attach image if it exists
+      if (image) {
+        chatPayload.attachments = [
+          {
+            url: image,
+          },
+        ];
+      }
+      
+      const result = await v0.chats.create(chatPayload);
 
       logger.info("Component generate query was success");
+      logger.info(result);
 
       res
         .status(HTTP_STATUS.OK)
@@ -190,6 +204,9 @@ export const generateComponent: RequestHandler = async (req, res) => {
             "V0 API Request was failed",
           ),
         );
+    } finally {
+      process.env.V0_API_KEY = oldKey; // restore original key
+      logger.info(`Reset V0 API key: ${voApiKey}`);
     }
   } catch (error: any) {
     logger.error(error);
@@ -199,7 +216,7 @@ export const generateComponent: RequestHandler = async (req, res) => {
         new ErrorResponse(
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           "Component generate query was failed",
-          error
+          error,
         ),
       );
   }
