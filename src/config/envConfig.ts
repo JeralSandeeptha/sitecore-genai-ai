@@ -10,5 +10,6 @@ export const envConfig = {
     DOMAIN: process.env.DOMAIN,
     V0_API_KEY: process.env.V0_API_KEY,
     KNOWLEDGE_API_URL: process.env.KNOWLEDGE_API_URL,
-    GATEWAY_SERVICE_URL: process.env.GATEWAY_SERVICE_URL
+    GATEWAY_SERVICE_URL: process.env.GATEWAY_SERVICE_URL,
+    RABBITMQ_SERVICE_URL: process.env.RABBITMQ_SERVICE_URL
 }

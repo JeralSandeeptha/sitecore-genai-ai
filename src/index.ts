@@ -8,9 +8,10 @@ import logger from "./utils/logger";
 import appRoute from "./api/routes/app.route";
 import genAiRoute from "./api/routes/genai.route";
 import { envConfig } from './config/envConfig';
+import { connectRabbitMQ } from './config/rabbitmq';
 
 const app: Application = express();
-const PORT = process.env.PORT || 6001;
+const PORT = process.env.PORT || 5002;
 
 // Middlewares
 app.use(cors({
@@ -26,7 +27,9 @@ app.use('/api/v1', appRoute); // Health routes
 app.use('/api/v1/genai', genAiRoute); // GenAI routes
 
 // start application
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+    await connectRabbitMQ();
+
     console.log(`GenAI Backend API is running on port ${PORT}`);
     logger.info(`GenAI Backend API is running on port ${PORT}`);
 });
