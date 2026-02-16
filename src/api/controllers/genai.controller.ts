@@ -16,7 +16,7 @@ const getUserV0Key = async (userId: string): Promise<string> => {
 
 export const generateComponent: RequestHandler = async (req, res) => {
   try {
-    const { prompt, image, userId } = req.body;
+    const { prompt, image, userId, taskId } = req.body;
 
     if (!prompt) {
       return res
@@ -61,7 +61,8 @@ export const generateComponent: RequestHandler = async (req, res) => {
       prompt,
       image,
       userId,
-      voApiKey
+      voApiKey,
+      taskId
     };
     logger.info(createChatDetails);
 
